@@ -44,7 +44,8 @@ jobs:
       run: |
         IFS=',' read -r -a domain_array <<< "${DOMAINS}"
         for domain in "${domain_array[@]}"; do
-          ~/.acme.sh/acme.sh --issue --dns dns_ali -d "*.${domain}" \
+          # 同时申请根域名和通配符证书
+          ~/.acme.sh/acme.sh --issue --dns dns_ali -d "${domain}" -d "*.${domain}" \
           --key-file ~/certs/${domain}/privkey.pem --fullchain-file ~/certs/${domain}/fullchain.pem
         done
 
