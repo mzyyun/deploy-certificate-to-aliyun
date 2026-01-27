@@ -31,26 +31,18 @@ jobs:
     - name: Prepare acme.sh credentials
       run: |
         mkdir -p ~/.acme.sh
-        IFS=',' read -r -a domain_array <<< "${{ secrets.DOMAINS }}"
-        for domain in "${domain_array[@]}"; do
-          mkdir -p ~/certs/${domain}
-        done
+        mkdir -p ~/certs
 
-    - name: Obtain SSL Certificates
+    - name: Install Python dependencies
+      run: pip install -r requirements.txt
+
+    - name: Obtain SSL Certificates (Smart)
       env:
         DOMAINS: ${{ secrets.DOMAINS }}
         Ali_Key: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
         Ali_Secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
-      run: |
-        IFS=',' read -r -a domain_array <<< "${DOMAINS}"
-        for domain in "${domain_array[@]}"; do
-          ~/.acme.sh/acme.sh --issue --dns dns_ali -d "${domain}" \
-          --key-file ~/certs/${domain}/privkey.pem --fullchain-file ~/certs/${domain}/fullchain.pem
-        done
+      run: python cert_manager.py
 
-
-    - name: Install Python dependencies
-      run: pip install -r requirements.txt
 
     - name: Upload certificates to Alibaba Cloud CDN
       env:
@@ -64,10 +56,5 @@ jobs:
       run: python upload_certs_to_aliyun.py
 
     - name: Clean up
-      env:
-        DOMAINS: ${{ secrets.DOMAINS }}
       run: |
-        IFS=',' read -r -a domain_array <<< "${DOMAINS}"
-        for domain in "${domain_array[@]}"; do
-          rm -rf ~/certs/${domain}
-        done
+        rm -rf ~/certs
