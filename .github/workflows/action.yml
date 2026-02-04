@@ -29,12 +29,15 @@ jobs:
         curl https://get.acme.sh | sh -s email="${EMAIL}"
 
     - name: Prepare acme.sh credentials
+      env:
+        DOMAINS: ${{ secrets.DOMAINS }}
       run: |
         mkdir -p ~/.acme.sh
-        IFS=',' read -r -a domain_array <<< "${{ secrets.DOMAINS }}"
-        for domain in "${domain_array[@]}"; do
-          mkdir -p ~/certs/${domain}
-        done
+        # 从DOMAINS中提取主域名（取第一个，去掉可能的空格）
+        MAIN_DOMAIN=$(echo "${DOMAINS}" | cut -d',' -f1 | xargs)
+        # 创建主域名和泛域名证书目录
+        mkdir -p ~/certs/${MAIN_DOMAIN}
+        mkdir -p ~/certs/wildcard.${MAIN_DOMAIN}
 
     - name: Obtain SSL Certificates
       env:
@@ -42,11 +45,20 @@ jobs:
         Ali_Key: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
         Ali_Secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
       run: |
-        IFS=',' read -r -a domain_array <<< "${DOMAINS}"
-        for domain in "${domain_array[@]}"; do
-          ~/.acme.sh/acme.sh --issue --dns dns_ali -d "${domain}" \
-          --key-file ~/certs/${domain}/privkey.pem --fullchain-file ~/certs/${domain}/fullchain.pem
-        done
+        # 提取主域名
+        MAIN_DOMAIN=$(echo "${DOMAINS}" | cut -d',' -f1 | xargs)
+        
+        # 申请主域名证书
+        echo "申请主域名证书: ${MAIN_DOMAIN}"
+        ~/.acme.sh/acme.sh --issue --dns dns_ali -d "${MAIN_DOMAIN}" \
+          --key-file ~/certs/${MAIN_DOMAIN}/privkey.pem \
+          --fullchain-file ~/certs/${MAIN_DOMAIN}/fullchain.pem
+        
+        # 申请泛域名证书
+        echo "申请泛域名证书: *.${MAIN_DOMAIN}"
+        ~/.acme.sh/acme.sh --issue --dns dns_ali -d "*.${MAIN_DOMAIN}" \
+          --key-file ~/certs/wildcard.${MAIN_DOMAIN}/privkey.pem \
+          --fullchain-file ~/certs/wildcard.${MAIN_DOMAIN}/fullchain.pem
 
 
     - name: Install Python dependencies
@@ -56,9 +68,9 @@ jobs:
       env:
         ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
         ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
-        # 要设置域名的二级域名，例如要设置*.example.com，这里填写的就是example.com, 多个域名用英文逗号隔开
+        # 主域名，例如 mzyyun.com
         DOMAINS: ${{ secrets.DOMAINS }}
-        # 设置阿里云cdn域名，一般是三级域名，例如cdn.example.com，需要跟上面的DOMAINS对应，否则会设置错误
+        # 设置阿里云cdn域名，多个用英文逗号隔开
         ALIYUN_CDN_DOMAINS: ${{ secrets.ALIYUN_CDN_DOMAINS }}
   
       run: python upload_certs_to_aliyun.py
@@ -67,7 +79,6 @@ jobs:
       env:
         DOMAINS: ${{ secrets.DOMAINS }}
       run: |
-        IFS=',' read -r -a domain_array <<< "${DOMAINS}"
-        for domain in "${domain_array[@]}"; do
-          rm -rf ~/certs/${domain}
-        done
+        MAIN_DOMAIN=$(echo "${DOMAINS}" | cut -d',' -f1 | xargs)
+        rm -rf ~/certs/${MAIN_DOMAIN}
+        rm -rf ~/certs/wildcard.${MAIN_DOMAIN}
