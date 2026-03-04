@@ -1,10 +1,10 @@
 # Deploy Certificate to Aliyun
 
-每两个月自动部署泛解析证书到阿里云CDN上
+每两个月自动部署SSL证书（支持主域名和泛域名）到阿里云CDN上
 
 ## ✨ 功能特点
 
-- 🔄 自动续期 Let's Encrypt 泛域名证书
+- 🔄 自动续期 Let's Encrypt 证书（同时支持主域名和泛域名，如 example.com 和 *.example.com）
 - ☁️ 自动部署到阿里云 CDN
 - ⏰ 每两个月自动运行一次
 - 📧 证书过期邮件提醒
@@ -42,7 +42,7 @@
 | `ALIYUN_ACCESS_KEY_ID`     | 阿里云 AccessKey ID                                | `LTAI5txxxxxxxxxxxxx`          |
 | `ALIYUN_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret                            | `h6J9Zxxxxxxxxxxxxxxxxxxxx`    |
 | `DOMAINS`                  | 主域名，多个用**英文逗号**隔开                     | `example.com,test.org`         |
-| `ALIYUN_CDN_DOMAINS`       | CDN域名，与DOMAINS顺序对应，多个用**英文逗号**隔开 | `cdn.example.com,img.test.org` |
+| `ALIYUN_CDN_DOMAINS`       | CDN域名，与DOMAINS顺序对应，多个用**英文逗号**隔开。可以是主域名（如 example.com）或子域名（如 cdn.example.com） | `example.com,cdn.example.com` |
 | `EMAIL`                    | 接收通知的邮箱地址                                 | `your-email@example.com`       |
 
 ### 第四步：触发工作流运行
@@ -63,6 +63,7 @@
 
 - **安全性**：阿里云 AK/SK 是非常敏感的凭证，务必通过 **Secrets** 的方式配置，绝不要直接写在代码文件里
 - **域名对应关系**：`DOMAINS` 和 `ALIYUN_CDN_DOMAINS` 的顺序必须严格对应，否则会导致证书部署到错误的CDN域名上
+- **证书匹配**：证书同时包含主域名和泛域名（如 example.com 和 *.example.com），因此 `ALIYUN_CDN_DOMAINS` 中可以包含主域名或任何子域名，都能正常匹配
 - **分隔符**：多个域名之间使用**英文逗号**分隔，不要使用空格或其他符号
 - **首次运行**：建议手动触发一次以确保配置无误
 - **费用**：Let's Encrypt 证书本身是免费的，但关联的阿里云CDN、DNS等服务可能会产生正常费用
