@@ -29,8 +29,9 @@ def upload_certificate(client, domain_name, cert_path, key_path):
     request = SetCdnDomainSSLCertificateRequest.SetCdnDomainSSLCertificateRequest()
     # CDN加速域名
     request.set_DomainName(domain_name)
-    # 证书名称
-    request.set_CertName(domain_name + datetime.datetime.now().strftime("%Y%m%d"))
+    # 证书名称（包含时间戳以确保唯一性）
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    request.set_CertName(f"{domain_name}-{timestamp}")
     request.set_CertType('upload')
     request.set_SSLProtocol('on')
     request.set_SSLPub(cert)
