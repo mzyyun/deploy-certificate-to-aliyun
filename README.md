@@ -42,7 +42,7 @@
 | `ALIYUN_ACCESS_KEY_ID`     | 阿里云 AccessKey ID                                | `LTAI5txxxxxxxxxxxxx`          |
 | `ALIYUN_ACCESS_KEY_SECRET` | 阿里云 AccessKey Secret                            | `h6J9Zxxxxxxxxxxxxxxxxxxxx`    |
 | `DOMAINS`                  | 主域名，多个用**英文逗号**隔开                     | `example.com,test.org`         |
-| `ALIYUN_CDN_DOMAINS`       | CDN域名，与DOMAINS顺序对应，多个用**英文逗号**隔开。可以是主域名（如 example.com）或子域名（如 cdn.example.com）。系统会自动判断：主域名使用主域名证书，子域名使用泛域名证书 | `example.com,cdn.example.com` |
+| `ALIYUN_CDN_DOMAINS`       | CDN域名，多个用**英文逗号**隔开。可以是主域名（如 example.com）或子域名（如 cdn.example.com）。系统会自动为每个CDN域名匹配对应的主域名：主域名使用主域名证书，子域名使用对应主域名的泛域名证书。一个主域名可以对应多个CDN域名 | `example.com,cdn.example.com,api.example.com,www.example.com` |
 | `EMAIL`                    | 接收通知的邮箱地址                                 | `your-email@example.com`       |
 
 ### 第四步：触发工作流运行
@@ -62,7 +62,7 @@
 ## ⚠️ 重要注意事项
 
 - **安全性**：阿里云 AK/SK 是非常敏感的凭证，务必通过 **Secrets** 的方式配置，绝不要直接写在代码文件里
-- **域名对应关系**：`DOMAINS` 和 `ALIYUN_CDN_DOMAINS` 的顺序必须严格对应，否则会导致证书部署到错误的CDN域名上
+- **域名对应关系**：系统会自动为每个 `ALIYUN_CDN_DOMAINS` 中的域名匹配对应的主域名。如果CDN域名等于某个主域名，使用该主域名的主域名证书；如果是子域名，使用对应主域名的泛域名证书。一个主域名可以对应多个CDN域名
 - **证书策略**：系统会为每个域名申请两个证书：
   - **主域名证书**：只包含主域名（如 example.com）
   - **泛域名证书**：只包含泛域名（如 *.example.com）
