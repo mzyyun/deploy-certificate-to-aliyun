@@ -40,30 +40,33 @@ def upload_certificate(client, domain_name, cert_path, key_path):
     response = client.do_action_with_exception(request)
     print(str(response, encoding='utf-8'))
 
+def is_main_domain(cdn_domain, main_domain):
+    """判断CDN域名是否为主域名"""
+    return cdn_domain.strip() == main_domain.strip()
+
 def main():
     access_key_id = get_env_var('ALIYUN_ACCESS_KEY_ID')
     access_key_secret = get_env_var('ALIYUN_ACCESS_KEY_SECRET')
     domains = [d.strip() for d in get_env_var('DOMAINS').split(',')]
     cdn_domains = [d.strip() for d in get_env_var('ALIYUN_CDN_DOMAINS').split(',')]
 
-    # 验证两个列表长度必须一致
     if len(domains) != len(cdn_domains):
-        raise ValueError(
-            f"DOMAINS 和 ALIYUN_CDN_DOMAINS 的数量必须一致。"
-            f"DOMAINS 有 {len(domains)} 个，ALIYUN_CDN_DOMAINS 有 {len(cdn_domains)} 个"
-        )
+        raise ValueError(f"DOMAINS 和 ALIYUN_CDN_DOMAINS 的数量必须一致: {len(domains)} vs {len(cdn_domains)}")
 
     client = AcsClient(access_key_id, access_key_secret, 'cn-hangzhou')
 
     for domain, cdn_domain in zip(domains, cdn_domains):
-        # 验证 CDN 域名是否与证书域名匹配（主域名或子域名）
-        # 证书包含 example.com 和 *.example.com，所以可以匹配主域名和所有子域名
-        if cdn_domain != domain and not cdn_domain.endswith('.' + domain):
-            print(f"警告: CDN域名 {cdn_domain} 可能不匹配证书域名 {domain}。"
-                  f"证书包含 {domain} 和 *.{domain}，请确保 {cdn_domain} 是 {domain} 的主域名或子域名。")
+        # 根据CDN域名类型选择对应的证书
+        # 主域名使用主域名证书，子域名使用泛域名证书
+        if is_main_domain(cdn_domain, domain):
+            cert_path = f'~/certs/{domain}/fullchain.pem'
+            key_path = f'~/certs/{domain}/privkey.pem'
+            print(f"为主域名 {cdn_domain} 使用主域名证书")
+        else:
+            cert_path = f'~/certs/{domain}/wildcard_fullchain.pem'
+            key_path = f'~/certs/{domain}/wildcard_privkey.pem'
+            print(f"为子域名 {cdn_domain} 使用泛域名证书")
         
-        cert_path = f'~/certs/{domain}/fullchain.pem'
-        key_path = f'~/certs/{domain}/privkey.pem'
         upload_certificate(client, cdn_domain, cert_path, key_path)
 
 if __name__ == "__main__":
