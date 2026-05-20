@@ -1,6 +1,7 @@
 import datetime
 import os
 from aliyunsdkcore.client import AcsClient
+from aliyunsdkcore.acs_exception.exceptions import ServerException
 from aliyunsdkcdn.request.v20180510 import SetCdnDomainSSLCertificateRequest
 
 def get_env_var(key):
@@ -38,8 +39,15 @@ def upload_certificate(client, domain_name, cert_path, key_path):
     request.set_SSLPri(key)
     request.set_CertRegion('cn-hangzhou')
 
-    response = client.do_action_with_exception(request)
+    try:
+        response = client.do_action_with_exception(request)
+    except ServerException as e:
+        if e.get_error_code() == 'InvalidDomain.Offline':
+            print(f"警告: CDN 域名 {domain_name} 已停用 (offline)，跳过证书上传")
+            return False
+        raise
     print(str(response, encoding='utf-8'))
+    return True
 
 def is_main_domain(cdn_domain, main_domain):
     """判断CDN域名是否为主域名"""
@@ -73,6 +81,7 @@ def main():
         raise ValueError("ALIYUN_CDN_DOMAINS 不能为空")
 
     client = AcsClient(access_key_id, access_key_secret, 'cn-hangzhou')
+    skipped_offline = []
 
     for cdn_domain in cdn_domains:
         # 为每个CDN域名找到匹配的主域名
@@ -91,7 +100,11 @@ def main():
             key_path = f'~/certs/{main_domain}/wildcard_privkey.pem'
             print(f"为子域名 {cdn_domain} 使用泛域名证书（主域名: {main_domain}）")
         
-        upload_certificate(client, cdn_domain, cert_path, key_path)
+        if not upload_certificate(client, cdn_domain, cert_path, key_path):
+            skipped_offline.append(cdn_domain)
+
+    if skipped_offline:
+        print(f"\n摘要: 已跳过 {len(skipped_offline)} 个已停用的 CDN 域名: {', '.join(skipped_offline)}")
 
 if __name__ == "__main__":
     main()
