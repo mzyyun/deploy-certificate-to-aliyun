@@ -46,11 +46,13 @@ jobs:
         for domain in "${domain_array[@]}"; do
           # 申请主域名证书（只包含主域名）
           ~/.acme.sh/acme.sh --issue --server letsencrypt --dns dns_ali -d "${domain}" \
-          --key-file ~/certs/${domain}/privkey.pem --fullchain-file ~/certs/${domain}/fullchain.pem
+          --key-file ~/certs/${domain}/privkey.pem --fullchain-file ~/certs/${domain}/fullchain.pem \
+          --debug
           
           # 申请泛域名证书（只包含泛域名）
           ~/.acme.sh/acme.sh --issue --server letsencrypt --dns dns_ali -d "*.${domain}" \
-          --key-file ~/certs/${domain}/wildcard_privkey.pem --fullchain-file ~/certs/${domain}/wildcard_fullchain.pem
+          --key-file ~/certs/${domain}/wildcard_privkey.pem --fullchain-file ~/certs/${domain}/wildcard_fullchain.pem \
+          --debug
         done
 
 
