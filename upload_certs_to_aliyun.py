@@ -9,6 +9,7 @@ from cert_utils import (
     cert_paths,
     find_covering_cert,
     get_env_var,
+    get_optional_env_var,
     load_cert_domains,
     parse_csv,
 )
@@ -53,13 +54,15 @@ def upload_certificate(client, domain_name, cert_path, key_path, cert_domain):
 
 
 def main():
+    cdn_raw = get_optional_env_var('ALIYUN_CDN_DOMAINS')
+    cdn_domains = parse_csv(cdn_raw)
+    if not cdn_domains:
+        print('未设置 ALIYUN_CDN_DOMAINS，跳过 CDN 证书上传')
+        return
+
     access_key_id = get_env_var('ALIYUN_ACCESS_KEY_ID')
     access_key_secret = get_env_var('ALIYUN_ACCESS_KEY_SECRET')
     cert_domains = load_cert_domains()
-    cdn_domains = parse_csv(get_env_var('ALIYUN_CDN_DOMAINS'))
-
-    if not cdn_domains:
-        raise ValueError('ALIYUN_CDN_DOMAINS 不能为空')
 
     client = AcsClient(access_key_id, access_key_secret, 'cn-hangzhou')
     skipped_offline = []

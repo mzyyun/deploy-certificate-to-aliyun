@@ -28,20 +28,16 @@ jobs:
         sudo apt-get install -y socat
         curl https://get.acme.sh | sh -s email="${EMAIL}"
 
-    - name: Prepare certificate directories
+    - name: Derive certificate domains
       env:
+        # 可选覆盖；不填则从 CDN/ESA 域名列表自动推导
         CERT_DOMAINS: ${{ secrets.CERT_DOMAINS }}
-      run: |
-        mkdir -p ~/.acme.sh
-        IFS=',' read -r -a cert_array <<< "${CERT_DOMAINS}"
-        for cert_domain in "${cert_array[@]}"; do
-          slug="${cert_domain//\*/_wildcard}"
-          mkdir -p ~/certs/${slug}
-        done
+        ALIYUN_CDN_DOMAINS: ${{ secrets.ALIYUN_CDN_DOMAINS }}
+        ALIYUN_ESA_BINDINGS: ${{ secrets.ALIYUN_ESA_BINDINGS }}
+      run: python derive_cert_domains.py
 
     - name: Obtain SSL Certificates
       env:
-        CERT_DOMAINS: ${{ secrets.CERT_DOMAINS }}
         Ali_Key: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
         Ali_Secret: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
       run: |
@@ -61,7 +57,6 @@ jobs:
       env:
         ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
         ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
-        CERT_DOMAINS: ${{ secrets.CERT_DOMAINS }}
         ALIYUN_CDN_DOMAINS: ${{ secrets.ALIYUN_CDN_DOMAINS }}
       run: python upload_certs_to_aliyun.py
 
@@ -69,14 +64,11 @@ jobs:
       env:
         ALIYUN_ACCESS_KEY_ID: ${{ secrets.ALIYUN_ACCESS_KEY_ID }}
         ALIYUN_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
-        CERT_DOMAINS: ${{ secrets.CERT_DOMAINS }}
         # 格式: siteId:host1+host2,siteId2:host3
         ALIYUN_ESA_BINDINGS: ${{ secrets.ALIYUN_ESA_BINDINGS }}
       run: python upload_certs_to_esa.py
 
     - name: Clean up
-      env:
-        CERT_DOMAINS: ${{ secrets.CERT_DOMAINS }}
       run: |
         IFS=',' read -r -a cert_array <<< "${CERT_DOMAINS}"
         for cert_domain in "${cert_array[@]}"; do
